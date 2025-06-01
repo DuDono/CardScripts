@@ -45,10 +45,13 @@ function s.activate(e,tp,eg,ep,ev,re,r,rp)
 end
 
 function s.spfilter(c)
-  return c:IsFacedown() and not c:IsHasEffect(EFFECT_SPSUMMON_CONDITION) and c:IsType(TYPE_FUSION|TYPE_SYNCHRO|TYPE_XYZ|TYPE_LINK)
+  return c:IsFacedown() and not c:IsHasEffect(EFFECT_SPSUMMON_CONDITION) and c:IsAbleToExtra()
+end
+function s.spfilter2(c,code)
+	return c:IsCode(code) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
 end
 function s.sptg(e,tp,eg,ep,ev,re,r,rp,chk)
-  if chk==0 then return Duel.IsExistingMatchingCard(Card.IsCode,tp,LOCATION_ONFIELD,0,1,nil,70155677) and
+  if chk==0 then return Duel.IsExistingMatchingCard(Card.IsCode,tp,LOCATION_MZONE,0,1,nil,70155677) and
     Duel.IsExistingMatchingCard(s.spfilter,tp,LOCATION_REMOVED,0,1,nil,e,tp) 
   end
 	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_REMOVED)
@@ -57,15 +60,23 @@ function s.spop(e,tp,eg,ep,ev,re,r,rp)
   Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
 	local g=Duel.SelectMatchingCard(tp,s.spfilter,tp,LOCATION_REMOVED,0,1,1,nil,e,tp)
 	if #g>0 then
-    local c=g:GetFirst()
-		Duel.SpecialSummon(c,SUMMON_TYPE_SPECIAL,tp,tp,false,true,POS_FACEUP)
-    local e1=Effect.CreateEffect(c)
-		e1:SetDescription(aux.Stringid(47132793,2))
-		e1:SetType(EFFECT_TYPE_SINGLE)
-		e1:SetCode(EFFECT_LEAVE_FIELD_REDIRECT)
-		e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_CLIENT_HINT)
-		e1:SetReset(RESET_EVENT+RESETS_REDIRECT)
-		e1:SetValue(LOCATION_DECKBOT)
-		c:RegisterEffect(e1,true)
+	    	local c=g:GetFirst()
+		local sid=c:GetCode()
+		if Duel.SendtoDeck(c,nil,SEQ_DECKSHUFFLE,REASON_EFFECT)~=0 then
+			c:AdjustInstantly()
+			if Duel.IsExistingMatchingCard(s.spfilter2,tp,LOCATION_EXTRA,0,1,nil,sid) then
+				local sc=Duel.SelectMatchingCard(tp,s.spfilter2,tp,LOCATION_EXTRA,0,1,1,nil,sid)
+				if Duel.SpecialSummon(sc,0,tp,tp,false,false,POS_FACEUP) then
+				    	local e1=Effect.CreateEffect(sc)
+					e1:SetDescription(aux.Stringid(47132793,2))
+					e1:SetType(EFFECT_TYPE_SINGLE)
+					e1:SetCode(EFFECT_LEAVE_FIELD_REDIRECT)
+					e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_CLIENT_HINT)
+					e1:SetReset(RESET_EVENT+RESETS_REDIRECT)
+					e1:SetValue(LOCATION_DECKBOT)
+					sc:RegisterEffect(e1,true)
+				end
+			end
+		end
 	end
 end
